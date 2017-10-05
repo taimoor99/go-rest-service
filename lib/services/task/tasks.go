@@ -26,12 +26,13 @@ type Task struct {
 // Create an Task
 func Create(c context.Context, tsk *Task) (*Task, error) {
 	var output *Task
-	if tsk == nil || tsk.Title == `` {
+	if tsk == nil || tsk.Title == `` || tsk.Owner == `` {
 		return nil, fmt.Errorf(invalidTaskData)
 	}
 
+	output, _ = GetByID(c, tsk.Owner, tsk.ID)
+
 	if output == nil {
-		// func NewKey(c context.Context, kind, stringID string, intID int64, parent *Key) *Key {
 		parentKey := datastore.NewKey(c, userIndex, tsk.Owner, 0, nil)
 		key := datastore.NewKey(c, index, tsk.ID, 0, parentKey)
 		insKey, err := datastore.Put(c, key, tsk)
@@ -41,7 +42,7 @@ func Create(c context.Context, tsk *Task) (*Task, error) {
 			return nil, err
 		}
 
-		output, err = GetByID(c, insKey.StringID())
+		output, err = GetByID(c, tsk.Owner, insKey.StringID())
 		if err != nil {
 			log.Errorf(c, "ERROR GETTING TASK OUTPUT: %v", err.Error())
 			return nil, err
@@ -53,11 +54,11 @@ func Create(c context.Context, tsk *Task) (*Task, error) {
 }
 
 // GetByID an Task based on its ID
-func GetByID(c context.Context, ID string) (*Task, error) {
+func GetByID(c context.Context, userEmail string, ID string) (*Task, error) {
 	if ID == `` {
 		return nil, fmt.Errorf(invalidTaskData)
 	}
-	parentKey := datastore.NewKey(c, userIndex, `pedrocelsonunes@gmail.com`, 0, nil)
+	parentKey := datastore.NewKey(c, userIndex, userEmail, 0, nil)
 	key := datastore.NewKey(c, index, ID, 0, parentKey)
 	var tsk Task
 	err := datastore.Get(c, key, &tsk)
@@ -69,4 +70,23 @@ func GetByID(c context.Context, ID string) (*Task, error) {
 		return nil, err
 	}
 	return &tsk, nil
+}
+
+// GetTasks Fetches all users
+func GetTasks(c context.Context, userEmail string) ([]Task, error) {
+	var output []Task
+	parentKey := datastore.NewKey(c, `User`, userEmail, 0, nil)
+	q := datastore.NewQuery(index)
+	q.Ancestor(parentKey)
+	_, err := q.GetAll(c, &output)
+
+	if err != nil {
+		log.Errorf(c, "error fetching all tasks for %v", userEmail)
+		return nil, err
+	}
+
+	if len(output) <= 0 {
+		return nil, fmt.Errorf("no tasks found for %v", userEmail)
+	}
+	return output, nil
 }

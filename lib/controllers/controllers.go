@@ -26,3 +26,9 @@ func CORSMiddleware() gin.HandlerFunc {
 		}
 	}
 }
+
+func SetContextValues() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Set(`user`, `pedro@pedrocelso.com.br`)
+	}
+}

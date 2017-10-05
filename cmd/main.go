@@ -10,6 +10,7 @@ import (
 func init() {
 	router := gin.New()
 	router.Use(controllers.CORSMiddleware())
+	router.Use(controllers.SetContextValues())
 	router.OPTIONS("/", func(c *gin.Context) {})
 
 	v1 := router.Group("/v1")
